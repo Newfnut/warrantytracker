@@ -1,0 +1,29 @@
+{
+  "name": "WarrantyVault",
+  "short_name": "WarrantyVault",
+  "description": "Track warranties and credit card extended coverage",
+  "start_url": "/warrantytracker/",
+  "scope": "/warrantytracker/",
+  "display": "standalone",
+  "background_color": "#f2f2f7",
+  "theme_color": "#2563eb",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
