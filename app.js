@@ -273,7 +273,7 @@ function itemCardHTML(item, compact = false) {
     else if (d === 0) val = 'Expires today';
     else if (d <= 90) val = `${fmtShort(dateStr)} (${d}d)`;
     else val = fmtShort(dateStr);
-    return `<span class="expiry-pill ${expiryPillClass(d)}"><span class="expiry-pill-lbl">${label}</span>${val}</span>`;
+    return `<span class="expiry-pill ${expiryPillClass(d)}"><span class="expiry-pill-lbl">${label}:</span><span class="expiry-pill-date">${val}</span></span>`;
   };
 
   const statusBadge = () => {
