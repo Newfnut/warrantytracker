@@ -269,7 +269,7 @@ function itemCardHTML(item, compact = false) {
   const expiryPillStr = (d, dateStr, label) => {
     if (!dateStr) return '';
     let val = '';
-    if (d < 0) val = `Exp ${fmtShort(dateStr)}`;
+    if (d < 0) val = fmtDate(dateStr);
     else if (d === 0) val = 'Expires today';
     else if (d <= 90) val = `${fmtShort(dateStr)} (${d}d)`;
     else val = fmtShort(dateStr);
