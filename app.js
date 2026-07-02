@@ -271,8 +271,8 @@ function itemCardHTML(item, compact = false) {
     let val = '';
     if (d < 0) val = fmtDate(dateStr);
     else if (d === 0) val = 'Expires today';
-    else if (d <= 90) val = `${fmtShort(dateStr)} (${d}d)`;
-    else val = fmtShort(dateStr);
+    else if (d <= 90) val = `${fmtDate(dateStr)} (${d}d)`;
+    else val = fmtDate(dateStr);
     return `<span class="expiry-pill ${expiryPillClass(d)}"><span class="expiry-pill-lbl">${label}:</span><span class="expiry-pill-date">${val}</span></span>`;
   };
 
@@ -296,8 +296,8 @@ function itemCardHTML(item, compact = false) {
           </div>
         </div>
         <div class="expiry-pills">
-          ${expiryPillStr(mfgD, item.mfgExpiry, 'MGF')}
-          ${item.ccExpiry ? expiryPillStr(ccD, item.ccExpiry, 'CC EXT') : ''}
+          ${expiryPillStr(mfgD, item.mfgExpiry, 'MGF EXP')}
+          ${item.ccExpiry ? expiryPillStr(ccD, item.ccExpiry, 'CC EXTND') : ''}
         </div>
       </div>
     </div>`;
