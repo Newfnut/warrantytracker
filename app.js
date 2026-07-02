@@ -666,11 +666,23 @@ function bindMain() {
   bindCardEditor();
 
   // Card picker sheet
-  on('cp-none', 'click', () => { S.editorCardId = ''; closeSheets(); setTimeout(() => openSheet('item-sheet'), 50); render(); });
+  on('cp-none', 'click', () => {
+    S.editorCardId = '';
+    closeSheets();
+    setTimeout(() => {
+      openSheet('item-sheet');
+      updateCardPickerLabel();
+      updateCalcHint();
+    }, 50);
+  });
   qAll('[data-cpid]').forEach(el => el.addEventListener('click', () => {
     S.editorCardId = el.dataset.cpid;
     closeSheets();
-    setTimeout(() => { openSheet('item-sheet'); render(); }, 50);
+    setTimeout(() => {
+      openSheet('item-sheet');
+      updateCardPickerLabel();
+      updateCalcHint();
+    }, 50);
   }));
 
   bindOverlayClose();
@@ -723,6 +735,12 @@ function updateMfgStepper() {
   const val = q('mfg-val');
   if (val) val.textContent = `${S.editorMfgYears} year${S.editorMfgYears !== 1 ? 's' : ''}`;
   updateCalcHint();
+}
+
+function updateCardPickerLabel() {
+  const lbl = q('ei-card-lbl'); if (!lbl) return;
+  const selectedCard = S.cards.find(c => c.id === S.editorCardId);
+  lbl.textContent = selectedCard ? '💳 ' + selectedCard.nickname : 'No card selected';
 }
 
 function updateCalcHint() {
