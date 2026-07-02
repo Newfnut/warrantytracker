@@ -215,3 +215,13 @@ textarea.finput{resize:none;min-height:72px;line-height:1.5}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 .witem{animation:fadein .2s ease both}
+
+/* ─── Expiry pills (dashboard compact view) ─── */
+.witem-compact{padding:12px 14px}
+.expiry-pills{display:flex;gap:8px;flex-wrap:wrap}
+.expiry-pill{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;font-size:12px;font-weight:600}
+.expiry-pill-lbl{font-size:10px;font-weight:700;opacity:.65;text-transform:uppercase;letter-spacing:.04em}
+.pill-ok{background:var(--success-bg);color:var(--success)}
+.pill-soon{background:var(--warning-bg);color:var(--warning)}
+.pill-past{background:var(--danger-bg);color:var(--danger)}
+.pill-none{background:var(--bg-secondary);color:var(--text-muted)}
