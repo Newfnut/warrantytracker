@@ -179,12 +179,12 @@ function renderDashboard() {
 
     ${expiring.length ? `
       <div class="sec-hdr">⚠️ Expiring Soon</div>
-      ${expiring.sort((a,b) => daysUntil(bestExpiry(a)) - daysUntil(bestExpiry(b))).map(i => itemCardHTML(i)).join('')}
+      ${expiring.sort((a,b) => daysUntil(bestExpiry(a)) - daysUntil(bestExpiry(b))).map(i => itemCardHTML(i, true)).join('')}
     ` : ''}
 
     ${active.filter(i => daysUntil(bestExpiry(i)) > 90).length ? `
       <div class="sec-hdr">Active Warranties</div>
-      ${active.filter(i => daysUntil(bestExpiry(i)) > 90).sort((a,b) => (a.name||'').localeCompare(b.name||'')).map(i => itemCardHTML(i)).join('')}
+      ${active.filter(i => daysUntil(bestExpiry(i)) > 90).sort((a,b) => (a.name||'').localeCompare(b.name||'')).map(i => itemCardHTML(i, true)).join('')}
     ` : ''}
 
     ${!S.items.length ? `
@@ -259,11 +259,22 @@ function renderVault() {
 }
 
 // ─── Item card HTML ───────────────────────────
-function itemCardHTML(item) {
+function itemCardHTML(item, compact = false) {
   const mfgD = daysUntil(item.mfgExpiry);
   const ccD  = item.ccExpiry ? daysUntil(item.ccExpiry) : null;
   const best = bestExpiry(item);
   const bestD = daysUntil(best);
+
+  const expiryPillClass = (d) => d === null ? 'pill-none' : d < 0 ? 'pill-past' : d <= 90 ? 'pill-soon' : 'pill-ok';
+  const expiryPillStr = (d, dateStr, label) => {
+    if (!dateStr) return '';
+    let val = '';
+    if (d < 0) val = `Exp ${fmtShort(dateStr)}`;
+    else if (d === 0) val = 'Expires today';
+    else if (d <= 90) val = `${fmtShort(dateStr)} (${d}d)`;
+    else val = fmtShort(dateStr);
+    return `<span class="expiry-pill ${expiryPillClass(d)}"><span class="expiry-pill-lbl">${label}</span>${val}</span>`;
+  };
 
   const statusBadge = () => {
     if (item.status === 'claimed') return `<span class="badge badge-claimed">✓ Claimed</span>`;
@@ -272,6 +283,25 @@ function itemCardHTML(item) {
     if (bestD <= 90) return `<span class="badge badge-expiring">${bestD}d left</span>`;
     return `<span class="badge badge-active">Active</span>`;
   };
+
+  if (compact) {
+    return `
+    <div class="witem" data-wid="${item.id}">
+      <div class="witem-inner witem-compact">
+        <div class="witem-top" style="margin-bottom:8px">
+          <div class="witem-icon">${itemIcon(item.name)}</div>
+          <div class="witem-info">
+            <div class="witem-name">${esc(item.name)}</div>
+            ${item.purchaseDate ? `<div class="witem-store">Purchased: ${fmtDate(item.purchaseDate)}</div>` : ''}
+          </div>
+        </div>
+        <div class="expiry-pills">
+          ${expiryPillStr(mfgD, item.mfgExpiry, 'MGF')}
+          ${item.ccExpiry ? expiryPillStr(ccD, item.ccExpiry, 'CC EXT') : ''}
+        </div>
+      </div>
+    </div>`;
+  }
 
   const expiryClass = (d) => d === null ? 'none' : d < 0 ? 'past' : d <= 90 ? 'soon' : 'ok';
   const expiryStr = (d, dateStr) => {
