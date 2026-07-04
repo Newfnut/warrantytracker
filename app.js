@@ -27,29 +27,25 @@ const DEV = new URLSearchParams(location.search).has('dev');
 // ═══════════════════════════════════════════
 const S = {
   screen: 'loading',
-  tab: 'dashboard',        // 'dashboard' | 'all' | 'vault'
+  tab: 'dashboard',
   user: null,
   householdId: null,
-  items: [],               // warrantyItems
-  cards: [],               // creditCards
+  items: [],
+  cards: [],
   unsubs: [],
   theme: localStorage.getItem('wv-theme') || 'light',
-  authMode: 'signin',      // 'signin' | 'signup' | 'join'
+  authMode: 'signin',
   pendingHouseholdCode: null,
-  // editor state
   editorItem: null,
-  editorMode: 'add',       // 'add' | 'edit'
+  editorMode: 'add',
   editorCardId: '',
   editorMfgYears: 1,
   editorStatus: 'active',
-  // card editor
   cardEditorItem: null,
   cardEditorMode: 'add',
   cardEditorNetwork: 'Visa',
   cardEditorExtraYears: 1,
-  // detail
   detailItem: null,
-  // filter
   filterStatus: 'all',
 };
 
@@ -77,8 +73,8 @@ function render() {
   const app = document.getElementById('app');
   switch (S.screen) {
     case 'loading': app.innerHTML = `<div class="loading-screen"><div style="font-size:44px">🛡️</div><div class="spin"></div></div>`; return;
-    case 'auth':    app.innerHTML = renderAuth();      break;
-    case 'main':    app.innerHTML = renderMain();      break;
+    case 'auth':    app.innerHTML = renderAuth();   break;
+    case 'main':    app.innerHTML = renderMain();   break;
   }
   bind();
 }
@@ -118,6 +114,7 @@ function renderMain() {
   if (S.tab === 'dashboard') tabContent = renderDashboard();
   else if (S.tab === 'all')  tabContent = renderAll();
   else if (S.tab === 'vault') tabContent = renderVault();
+  else if (S.tab === 'settings') tabContent = renderSettings();
 
   return `
   <div class="screen" id="main-screen">
@@ -128,7 +125,7 @@ function renderMain() {
   ${renderDetailSheet()}
   ${renderCardSheet()}
   ${renderCardPickerSheet()}
-  ${renderAccountSheet()}`;
+  ${renderClaimSheet()}`;
 }
 
 function renderTabBar() {
@@ -136,6 +133,7 @@ function renderTabBar() {
     { id: 'dashboard', ico: '🛡️', lbl: 'Dashboard' },
     { id: 'all',       ico: '📋', lbl: 'All Items' },
     { id: 'vault',     ico: '💳', lbl: 'Card Vault' },
+    { id: 'settings',  ico: '⚙️', lbl: 'Settings' },
   ];
   return `<div class="tab-bar">${tabs.map(t => `
     <div class="tab-btn${S.tab === t.id ? ' active' : ''}" data-tab="${t.id}">
@@ -146,19 +144,13 @@ function renderTabBar() {
 
 // ─── Dashboard ────────────────────────────────
 function renderDashboard() {
-  const now = new Date();
-  const active  = S.items.filter(i => i.status === 'active');
+  const active   = S.items.filter(i => i.status === 'active');
   const expiring = active.filter(i => daysUntil(bestExpiry(i)) <= 90 && daysUntil(bestExpiry(i)) >= 0);
-  const expired  = S.items.filter(i => i.status !== 'claimed' && daysUntil(bestExpiry(i)) < 0 && i.status !== 'expired');
   const claimed  = S.items.filter(i => i.status === 'claimed');
 
   return `
   <div class="hdr">
-    <div style="flex:1">
-      <div class="hdr-title">WarrantyVault 🛡️</div>
-    </div>
-    <button class="ico-btn" id="h-theme" title="Toggle theme">${S.theme === 'dark' ? '☀️' : '🌙'}</button>
-    <button class="ico-btn" id="h-account" title="Account">👤</button>
+    <div class="hdr-title">WarrantyVault 🛡️</div>
     <button class="ico-btn" id="h-add" title="Add item" style="background:var(--accent);color:var(--accent-fg);font-size:22px;font-weight:300">＋</button>
   </div>
   <div class="scroll">
@@ -194,7 +186,6 @@ function renderDashboard() {
         <div class="empty-txt">Tap ＋ to add your first item — receipt photo, purchase date, and which card you used.</div>
       </div>
     ` : ''}
-
     <div style="height:8px"></div>
   </div>`;
 }
@@ -255,6 +246,41 @@ function renderVault() {
         <div class="empty-txt">Add your credit cards and their warranty extension benefits so you never miss extra coverage.</div>
       </div>`}
     <div style="height:8px"></div>
+  </div>`;
+}
+
+// ─── Settings ────────────────────────────────
+function renderSettings() {
+  return `
+  <div class="hdr">
+    <div class="hdr-title">Settings ⚙️</div>
+  </div>
+  <div class="scroll">
+    <div class="settings-section-hdr">Appearance</div>
+    <div class="settings-row" id="st-theme">
+      <span class="settings-row-ic">${S.theme === 'dark' ? '☀️' : '🌙'}</span>
+      <span class="settings-row-lbl">${S.theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}</span>
+    </div>
+
+    <div class="settings-section-hdr">Household</div>
+    <div style="font-size:13px;color:var(--text-secondary);padding:0 18px 8px">Signed in as <strong>${esc(S.user?.email || '')}</strong></div>
+    <div class="code-box" style="margin:0 16px 0">
+      <div class="code-val">${(S.householdId || '').slice(-6).toUpperCase()}</div>
+      <div class="code-hint">Share this code so your partner can join</div>
+    </div>
+
+    <div class="settings-section-hdr">Data</div>
+    <div class="settings-row" id="st-csv">
+      <span class="settings-row-ic">⬇️</span>
+      <span class="settings-row-lbl">Download CSV Export</span>
+    </div>
+
+    <div class="settings-section-hdr">Account</div>
+    <div class="settings-row settings-row-danger" id="st-signout">
+      <span class="settings-row-ic">🚪</span>
+      <span class="settings-row-lbl">Sign Out</span>
+    </div>
+    <div style="height:20px"></div>
   </div>`;
 }
 
@@ -348,8 +374,6 @@ function renderItemSheet() {
   const cards = S.cards;
   const selectedCard = cards.find(c => c.id === S.editorCardId);
   const mfgYears = S.editorMfgYears;
-
-  // Calculate expiry preview
   const pd = item.purchaseDate || todayStr();
   const mfgExp = addYears(pd, mfgYears);
   const ccExp  = selectedCard ? addYears(pd, mfgYears + (selectedCard.extraWarrantyYears || 0)) : null;
@@ -401,7 +425,10 @@ function renderItemSheet() {
       </div>` : ''}
 
       <div class="fg"><label class="fg-label">Serial number</label>
-        <input class="finput" id="ei-serial" type="text" value="${esc(item.serialNumber || '')}" placeholder="Optional" autocorrect="off" autocapitalize="characters"></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input class="finput" id="ei-serial" type="text" value="${esc(item.serialNumber || '')}" placeholder="Optional" autocorrect="off" autocapitalize="characters" style="flex:1">
+          <button type="button" id="ei-scan" style="background:var(--bg-input);border-radius:var(--r-sm);padding:12px 14px;font-size:18px;flex-shrink:0" title="Scan barcode">📷</button>
+        </div></div>
 
       <div class="fg"><label class="fg-label">Notes</label>
         <textarea class="finput" id="ei-notes" placeholder="Any details…">${esc(item.notes || '')}</textarea></div>
@@ -491,6 +518,23 @@ function renderDetailSheet() {
         <img src="${item.receiptPhoto}" class="detail-photo" alt="Receipt">
       </div>` : ''}
 
+      <div class="detail-section">
+        <div class="detail-section-hdr" style="display:flex;align-items:center;justify-content:space-between">
+          Claim / Note Log
+          <button class="ico-btn" id="det-log-btn" style="color:var(--accent);font-size:13px;font-weight:600;width:auto;padding:0">＋ Add</button>
+        </div>
+        ${(item.claims||[]).length ? `
+        <div style="background:var(--bg-secondary);border-radius:var(--r-sm);overflow:hidden">
+          ${[...(item.claims||[])].reverse().map(c=>`
+            <div class="claim-entry">
+              <div class="claim-timestamp">${c.date ? fmtDate(c.date) : ''}${c.time ? ' at ' + c.time : ''}</div>
+              <div class="claim-note">${esc(c.note)}</div>
+              ${c.serial ? `<div class="claim-serial">New serial: ${esc(c.serial)}</div>` : ''}
+            </div>`).join('')}
+        </div>` : `
+        <div style="font-size:13px;color:var(--text-muted);padding:8px 0">No notes yet — tap ＋ Add to log a claim or note.</div>`}
+      </div>
+
       <div style="height:8px"></div>
     </div>
   </div>`;
@@ -574,28 +618,27 @@ function renderCardPickerSheet() {
   </div>`;
 }
 
-// ─── Account sheet ────────────────────────────
-function renderAccountSheet() {
+// ─── Claim log sheet ─────────────────────────
+function renderClaimSheet() {
   return `
-  <div class="overlay" id="account-sheet">
+  <div class="overlay" id="claim-sheet">
     <div class="sheet">
       <div class="sheet-handle"></div>
-      <div class="sheet-title">Account</div>
-      <div style="padding:14px 16px 0">
-        <div style="font-size:13px;color:var(--text-secondary);margin-bottom:14px">Signed in as <strong>${esc(S.user?.email || '')}</strong></div>
+      <div class="sheet-hdr-row">
+        <div style="flex:1;font-size:17px;font-weight:600">Log a Claim / Note</div>
+        <button class="ico-btn" id="cl-save" style="color:var(--accent);font-weight:700;font-size:15px;width:auto;padding:0 4px">Save</button>
       </div>
-      <div class="code-box">
-        <div class="code-val">${(S.householdId || '').slice(-6).toUpperCase()}</div>
-        <div class="code-hint">Share this code so your partner can join</div>
-      </div>
-      <button class="btn-main" id="acc-theme" style="background:var(--bg-secondary);color:var(--text);margin-top:14px">${S.theme === 'dark' ? '☀️ Switch to Light Mode' : '🌙 Switch to Dark Mode'}</button>
-      <button class="btn-main" id="acc-signout" style="background:var(--danger-bg);color:var(--danger);margin-top:10px">Sign Out</button>
+      <div class="fg"><label class="fg-label">Note</label>
+        <textarea class="finput" id="cl-note" placeholder="e.g. Called manufacturer, sent in for repair…"></textarea></div>
+      <div class="fg"><label class="fg-label">New / replacement serial number (optional)</label>
+        <input class="finput" id="cl-serial" type="text" placeholder="Leave blank if unchanged" autocorrect="off" autocapitalize="characters"></div>
+      <button class="btn-main" id="cl-save-btn">Save Note</button>
       <div style="height:8px"></div>
     </div>
   </div>`;
 }
 
-// ─── Filter pills CSS (injected inline since small) ──
+// ─── Filter pills CSS ──
 const filterStyle = document.createElement('style');
 filterStyle.textContent = `.filter-pill{padding:6px 14px;border-radius:20px;font-size:13px;font-weight:500;background:var(--bg-card);color:var(--text-secondary);border:.5px solid var(--border);white-space:nowrap;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:all .12s;flex-shrink:0}.filter-pill.active{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}.filter-pill:active{opacity:.7}.ctx-option{display:flex;align-items:center;gap:12px;padding:13px 18px;border-bottom:.5px solid var(--border);cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .1s}.ctx-option:last-child{border-bottom:none}.ctx-option:active{background:var(--bg-secondary)}`;
 document.head.appendChild(filterStyle);
@@ -652,17 +695,18 @@ async function doAuth() {
 }
 
 function bindMain() {
-  // Tab bar
   qAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => {
     haptic('light'); closeSheets(); goTab(btn.dataset.tab);
   }));
 
-  // Header buttons
-  on('h-theme', 'click', () => { setTheme(S.theme === 'dark' ? 'light' : 'dark'); render(); });
-  on('h-account', 'click', () => openSheet('account-sheet'));
   on('h-add', 'click', () => openItemEditor('add', {}));
   on('h-add-all', 'click', () => openItemEditor('add', {}));
   on('h-add-card', 'click', () => openCardEditor('add', {}));
+
+  // Settings tab
+  on('st-theme', 'click', () => { setTheme(S.theme === 'dark' ? 'light' : 'dark'); render(); });
+  on('st-csv', 'click', doExportCSV);
+  on('st-signout', 'click', doSignOut);
 
   // Filter pills
   qAll('.filter-pill').forEach(p => p.addEventListener('click', () => {
@@ -681,38 +725,31 @@ function bindMain() {
     if (card) openCardEditor('edit', card);
   }));
 
-  // Account sheet
-  on('acc-theme', 'click', () => { setTheme(S.theme === 'dark' ? 'light' : 'dark'); closeSheets(); render(); });
-  on('acc-signout', 'click', doSignOut);
-
   // Detail sheet
   on('det-close', 'click', closeSheets);
   on('det-edit', 'click', () => { const item = S.detailItem; closeSheets(); setTimeout(() => openItemEditor('edit', item), 50); });
+  on('det-log-btn', 'click', () => openSheet('claim-sheet'));
 
-  // Item editor sheet
+  // Claim sheet
+  on('cl-save', 'click', doSaveClaim);
+  on('cl-save-btn', 'click', doSaveClaim);
+
+  // Item editor
   bindItemEditor();
 
-  // Card editor sheet
+  // Card editor
   bindCardEditor();
 
-  // Card picker sheet
+  // Card picker
   on('cp-none', 'click', () => {
     S.editorCardId = '';
     closeSheets();
-    setTimeout(() => {
-      openSheet('item-sheet');
-      updateCardPickerLabel();
-      updateCalcHint();
-    }, 50);
+    setTimeout(() => { openSheet('item-sheet'); updateCardPickerLabel(); updateCalcHint(); }, 50);
   });
   qAll('[data-cpid]').forEach(el => el.addEventListener('click', () => {
     S.editorCardId = el.dataset.cpid;
     closeSheets();
-    setTimeout(() => {
-      openSheet('item-sheet');
-      updateCardPickerLabel();
-      updateCalcHint();
-    }, 50);
+    setTimeout(() => { openSheet('item-sheet'); updateCardPickerLabel(); updateCalcHint(); }, 50);
   }));
 
   bindOverlayClose();
@@ -723,6 +760,7 @@ function bindItemEditor() {
   on('ei-save-btn', 'click', doSaveItem);
   on('ei-del', 'click', doDeleteItem);
   on('ei-card-picker', 'click', () => openSheet('card-picker-sheet'));
+  on('ei-scan', 'click', doScanBarcode);
   on('mfg-minus', 'click', () => {
     if (S.editorMfgYears > 0.5) {
       S.editorMfgYears = S.editorMfgYears <= 1 ? 0.5 : S.editorMfgYears - 1;
@@ -757,8 +795,14 @@ function bindItemEditor() {
     o.classList.add('sel');
     haptic('light');
   }));
-  // Live calc hint update
   ['ei-date','ei-price'].forEach(id => on(id, 'input', updateCalcHint));
+  // Auto-expand notes textarea
+  const notesEl = q('ei-notes');
+  if (notesEl) {
+    const expand = () => { notesEl.style.height = 'auto'; notesEl.style.height = notesEl.scrollHeight + 'px'; };
+    notesEl.addEventListener('input', expand);
+    expand();
+  }
 }
 
 function updateMfgStepper() {
@@ -831,6 +875,7 @@ async function doSaveItem() {
   const ccExpiry  = selectedCard ? addYears(purchaseDate, mfgWarrantyYears + ccExtraYears) : null;
   const receiptPhoto = S.editorItem?.receiptPhoto || null;
   const status = S.editorMode === 'edit' ? (S.editorStatus || 'active') : 'active';
+  const claims = S.editorItem?.claims || [];
 
   const data = {
     name, store, purchaseDate, price, serialNumber, notes,
@@ -838,7 +883,7 @@ async function doSaveItem() {
     cardNickname: selectedCard ? selectedCard.nickname : '',
     mfgWarrantyYears, ccExtraYears,
     mfgExpiry, ccExpiry,
-    receiptPhoto, status
+    receiptPhoto, status, claims
   };
 
   haptic('medium');
@@ -928,6 +973,90 @@ async function doSignOut() {
   S.authMode = 'signin'; go('auth');
 }
 
+// ─── Claim log ───────────────────────────────
+async function doSaveClaim() {
+  const note = q('cl-note')?.value.trim(); if (!note) return;
+  const serial = q('cl-serial')?.value.trim() || '';
+  const now = new Date();
+  const claim = {
+    date: todayStr(),
+    time: now.toLocaleTimeString('en-CA', { hour: '2-digit', minute: '2-digit' }),
+    note, serial
+  };
+  haptic('medium');
+  const item = S.detailItem; if (!item) return;
+  const claims = [...(item.claims || []), claim];
+  const update = { claims };
+  if (serial) update.serialNumber = serial;
+  if (DEV) {
+    const idx = S.items.findIndex(i => i.id === item.id);
+    if (idx >= 0) {
+      S.items[idx].claims = claims;
+      if (serial) S.items[idx].serialNumber = serial;
+      S.detailItem = S.items[idx];
+    }
+    closeSheets(); render(); setTimeout(() => openDetail(S.detailItem), 50); return;
+  }
+  try {
+    await updateDoc(doc(db, `households/${S.householdId}/warrantyItems/${item.id}`), update);
+    item.claims = claims;
+    if (serial) item.serialNumber = serial;
+  } catch(e) { console.error('Save claim failed', e); }
+  closeSheets();
+}
+
+// ─── CSV Export ──────────────────────────────
+function doExportCSV() {
+  haptic('light');
+  const rows = [['Name','Store','Purchase Date','Price','Card','Mfg Warranty (yrs)','Mfg Expiry','CC Extra (yrs)','CC Expiry','Serial Number','Status','Notes','Claims']];
+  S.items.forEach(i => {
+    rows.push([
+      i.name, i.store||'', i.purchaseDate||'', i.price||'',
+      i.cardNickname||'', i.mfgWarrantyYears||'', i.mfgExpiry||'',
+      i.ccExtraYears||'', i.ccExpiry||'', i.serialNumber||'',
+      i.status||'active', i.notes||'',
+      (i.claims||[]).map(c=>`${c.date}: ${c.note}${c.serial?' [new serial: '+c.serial+']':''}`).join(' | ')
+    ]);
+  });
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `WarrantyVault-${todayStr()}.csv`; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ─── Barcode scanner ─────────────────────────
+async function doScanBarcode() {
+  const inp = q('ei-serial'); if (!inp) return;
+  try {
+    if (!window.ZXing) {
+      await new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = 'https://unpkg.com/@zxing/library@0.18.6/umd/index.min.js';
+        s.onload = res; s.onerror = rej;
+        document.head.appendChild(s);
+      });
+    }
+    const codeReader = new window.ZXing.BrowserMultiFormatReader();
+    const devices = await codeReader.listVideoInputDevices();
+    if (!devices.length) { alert('No camera found'); return; }
+    const deviceId = devices[devices.length - 1].deviceId;
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px';
+    overlay.innerHTML = `<video id="scan-video" style="width:90%;max-width:360px;border-radius:12px"></video><button id="scan-cancel" style="color:white;font-size:16px;padding:10px 24px;border:1.5px solid rgba(255,255,255,.4);border-radius:20px;background:none;cursor:pointer">Cancel</button><div style="color:rgba(255,255,255,.6);font-size:13px">Point camera at barcode or QR code</div>`;
+    document.body.appendChild(overlay);
+    document.getElementById('scan-cancel').addEventListener('click', () => { codeReader.reset(); overlay.remove(); });
+    codeReader.decodeFromVideoDevice(deviceId, 'scan-video', (result, err) => {
+      if (result) {
+        inp.value = result.getText();
+        haptic('medium');
+        codeReader.reset(); overlay.remove();
+      }
+    });
+  } catch(e) { alert('Scanner error: ' + e.message); }
+}
+
 // ═══════════════════════════════════════════
 // DATA
 // ═══════════════════════════════════════════
@@ -957,10 +1086,10 @@ if (DEV) {
     { id: 'c2', nickname: 'Amex Cobalt', network: 'Amex', extraWarrantyYears: 1, maxClaimAmount: 5000, notes: 'Electronics only' },
   ];
   S.items = [
-    { id: 'i1', name: 'LG 65" OLED TV', store: 'Costco', purchaseDate: '2024-03-15', price: 1799.99, cardId: 'c1', cardNickname: 'TD Visa Infinite', mfgWarrantyYears: 1, ccExtraYears: 1, mfgExpiry: '2025-03-15', ccExpiry: '2026-03-15', receiptPhoto: null, serialNumber: '9XKZT1234', notes: 'Model: OLED65C3', status: 'active' },
-    { id: 'i2', name: 'KitchenAid Mixer', store: 'Best Buy', purchaseDate: '2023-11-20', price: 549.99, cardId: 'c2', cardNickname: 'Amex Cobalt', mfgWarrantyYears: 1, ccExtraYears: 1, mfgExpiry: '2024-11-20', ccExpiry: '2025-11-20', receiptPhoto: null, serialNumber: '', notes: '', status: 'active' },
-    { id: 'i3', name: 'Dyson V15 Vacuum', store: 'Dyson.ca', purchaseDate: '2025-01-10', price: 899.99, cardId: 'c1', cardNickname: 'TD Visa Infinite', mfgWarrantyYears: 2, ccExtraYears: 1, mfgExpiry: '2027-01-10', ccExpiry: '2028-01-10', receiptPhoto: null, serialNumber: 'DY-V15-9821', notes: 'Registered on Dyson app', status: 'active' },
-    { id: 'i4', name: 'iPhone 15 Pro', store: 'Apple Store', purchaseDate: '2023-09-22', price: 1399.00, cardId: 'c1', cardNickname: 'TD Visa Infinite', mfgWarrantyYears: 1, ccExtraYears: 1, mfgExpiry: '2024-09-22', ccExpiry: '2025-09-22', receiptPhoto: null, serialNumber: 'F2LXM9ABC', notes: '', status: 'active' },
+    { id: 'i1', name: 'LG 65" OLED TV', store: 'Costco', purchaseDate: '2024-03-15', price: 1799.99, cardId: 'c1', cardNickname: 'TD Visa Infinite', mfgWarrantyYears: 1, ccExtraYears: 1, mfgExpiry: '2025-03-15', ccExpiry: '2026-03-15', receiptPhoto: null, serialNumber: '9XKZT1234', notes: 'Model: OLED65C3', status: 'active', claims: [] },
+    { id: 'i2', name: 'KitchenAid Mixer', store: 'Best Buy', purchaseDate: '2023-11-20', price: 549.99, cardId: 'c2', cardNickname: 'Amex Cobalt', mfgWarrantyYears: 1, ccExtraYears: 1, mfgExpiry: '2024-11-20', ccExpiry: '2025-11-20', receiptPhoto: null, serialNumber: '', notes: '', status: 'active', claims: [] },
+    { id: 'i3', name: 'Dyson V15 Vacuum', store: 'Dyson.ca', purchaseDate: '2025-01-10', price: 899.99, cardId: 'c1', cardNickname: 'TD Visa Infinite', mfgWarrantyYears: 2, ccExtraYears: 1, mfgExpiry: '2027-01-10', ccExpiry: '2028-01-10', receiptPhoto: null, serialNumber: 'DY-V15-9821', notes: 'Registered on Dyson app', status: 'active', claims: [{date:'2025-06-01',time:'10:30 AM',note:'Filter replaced under warranty',serial:''}] },
+    { id: 'i4', name: 'iPhone 15 Pro', store: 'Apple Store', purchaseDate: '2023-09-22', price: 1399.00, cardId: 'c1', cardNickname: 'TD Visa Infinite', mfgWarrantyYears: 1, ccExtraYears: 1, mfgExpiry: '2024-09-22', ccExpiry: '2025-09-22', receiptPhoto: null, serialNumber: 'F2LXM9ABC', notes: '', status: 'active', claims: [] },
   ];
   go('main');
 } else {
